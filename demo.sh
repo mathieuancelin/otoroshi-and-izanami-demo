@@ -11,18 +11,20 @@ press_key_to_continue () {
 }
 
 start_otoroshi()  {
+  mkdir $LOCATION/oto-run
+  cd oto-run
   java \
 	  -Dapp.claim.sharedKey=otoroshisharedkey \
 	  -Dhttp.port=8081 \
 	  -Dapp.adminLogin=demo@admin.io \
 	  -Dapp.adminPassword=demoIzaOto \
 	  -jar $LOCATION/otoroshi.jar & 
+  cd $LOCATION	
 }
 
 kill_otoroshi () {
 	ps aux  |  grep -i 8081 |  grep -v grep   | awk '{print $2}' | xargs kill 
-	rm -rf $LOCATION/RUNNING_PID	
-	rm -rf $LOCATION/logs
+	rm -rf $LOCATION/oto-run
 }
 
 start_izanami () {
@@ -32,6 +34,7 @@ start_izanami () {
 	docker rm redis-iznanami 
 	docker run --name redis-iznanami -v $(pwd)/redisdata:/data -p 6379:6379 redis
 	java -jar -Dizanami.events.store=Kafka -Dizanami.db.default=Redis izanami.jar &
+	cd $LOCATION
 }
 
 kill_izanami () {
