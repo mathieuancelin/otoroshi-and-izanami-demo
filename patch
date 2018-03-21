@@ -1,0 +1,451 @@
+diff --git a/example/example-spring/javascript-react/src/pages/MyTvshows.js b/example/example-spring/javascript-react/src/pages/MyTvshows.js
+index 25073e7..c7e101a 100644
+--- a/example/example-spring/javascript-react/src/pages/MyTvshows.js
++++ b/example/example-spring/javascript-react/src/pages/MyTvshows.js
+@@ -32,14 +32,7 @@ export default class MyTvShows extends React.Component {
+                     </div>
+                     <div className="media-body">
+                       <h3 className="media-heading">{title}</h3>
+-                      <Experiment path={"mytvshows:gotoepisodes:button"} notifyDisplay="/api/izanami/experiments/displayed" >
+-                        <Variant id={"A"}>
+-                          <Link to={`/tvshow/${id}`} onClick={this.markAsWon} className="btn pull-right" alt="consulter"><i className="fa fa-eye"></i></Link>
+-                        </Variant>
+-                        <Variant id={"B"}>
+-                          <Link to={`/tvshow/${id}`} onClick={this.markAsWon} className="btn pull-right" alt="consulter"><i className="glyphicon glyphicon-chevron-right"></i></Link>
+-                        </Variant>
+-                      </Experiment>
++                      <Link to={`/tvshow/${id}`} className="btn pull-right" alt="consulter"><i className="fa fa-eye"></i></Link>
+                       <button type="button" className="btn pull-right" onClick={this.remove(id)} alt="supprimer"><i className="glyphicon glyphicon-trash"/></button>
+                       <p className="description">{_.truncate(description, {length:350})}</p>
+                     </div>
+diff --git a/example/example-spring/javascript-react/src/pages/TvShow.js b/example/example-spring/javascript-react/src/pages/TvShow.js
+index 5dbd9b3..c571d76 100644
+--- a/example/example-spring/javascript-react/src/pages/TvShow.js
++++ b/example/example-spring/javascript-react/src/pages/TvShow.js
+@@ -96,27 +96,20 @@ export default class TvShow extends React.Component {
+                         >
+                             {`Season ${s.number}`}
+                         </a>
+-                        <Feature path={"mytvshows:season:markaswatched"}>
+-                          <Enabled>
+-                            {s.allWatched &&
+-                              <button
+-                                onClick={this.markSeasonWatched(s.number, false)}
+-                                className="btn btn default pull-right addBtn">
+-                                  <i className="glyphicon glyphicon-ok"/>
+-                              </button>
+-                            }
+-                            {!s.allWatched &&
+-                              <button
+-                                onClick={this.markSeasonWatched(s.number, true)}
+-                                className="btn btn default pull-right addBtn">
+-                                ADD
+-                              </button>
+-                            }
+-                          </Enabled>
+-                          <Disabled>
+-                            <div></div>
+-                          </Disabled>
+-                        </Feature>
++                        {s.allWatched &&
++                          <button
++                            onClick={this.markSeasonWatched(s.number, false)}
++                            className="btn btn default pull-right addBtn">
++                              <i className="glyphicon glyphicon-ok"/>
++                          </button>
++                        }
++                        {!s.allWatched &&
++                          <button
++                            onClick={this.markSeasonWatched(s.number, true)}
++                            className="btn btn default pull-right addBtn">
++                            ADD
++                          </button>
++                        }
+                     </h4>
+                   </div>
+                   <div id={`collapse-${s.number}`} className={idx === expandId ? "panel-collapse collapse in": "panel-collapse collapse"} role="tabpanel" aria-labelledby={`heading-${s.number}`}>
+diff --git a/example/example-spring/javascript-react/src/services.js b/example/example-spring/javascript-react/src/services.js
+index 984317a..da89d21 100644
+--- a/example/example-spring/javascript-react/src/services.js
++++ b/example/example-spring/javascript-react/src/services.js
+@@ -30,9 +30,16 @@ export function me() {
+ 
+ 
+ export function searchTvShow(input) {
+-  return fetch(`/api/shows/_search?name=${input}&ts=${new Date().getTime()}`)
++  return fetch(`/api/shows/_search?name=${input}&ts=${new Date().getTime()}`, {
++        method: 'GET',
++        credentials: 'include'
++    })
+     .then((response) => {
+-      return response.json();
++      if (response.status === 200){
++          return response.json();
++      } else {
++        return [];
++      }
+     });
+ }
+ 
+diff --git a/example/example-spring/src/main/java/izanami/example/Application.java b/example/example-spring/src/main/java/izanami/example/Application.java
+index 1cc89f3..924ad26 100644
+--- a/example/example-spring/src/main/java/izanami/example/Application.java
++++ b/example/example-spring/src/main/java/izanami/example/Application.java
+@@ -52,124 +52,4 @@ public class Application {
+     Module vavrModule() {
+         return new VavrModule();
+     }
+-
+-    @Bean
+-    @Autowired
+-    IzanamiClient izanamiClient(ActorSystem actorSystem) {
+-        String host = environment.getProperty("izanami.host");
+-        String clientId = environment.getProperty("izanami.clientId");
+-        String clientSecret = environment.getProperty("izanami.clientSecret");
+-        LOGGER.info("Creating izanami client with host {}, client id {}", host, clientId);
+-        return IzanamiClient.client(
+-                    actorSystem,
+-                    ClientConfig
+-                        .create(host)
+-                        .withClientId(clientId)
+-                        .withClientSecret(clientSecret)
+-                        .withClientIdHeaderName("Izanami-Client-Id")
+-                        .withClientSecretHeaderName("Izanami-Client-Secret")
+-                        .withDispatcher("izanami-example.blocking-io-dispatcher")
+-                        .sseBackend()
+-                );
+-    }
+-
+-    @Bean
+-    @Autowired
+-    Proxy proxy(IzanamiClient izanamiClient, FeatureClient featureClient, ExperimentsClient experimentClient) {
+-        return izanamiClient.proxy()
+-                .withFeaturePattern("mytvshows:*")
+-                .withFeatureClient(featureClient)
+-                .withExperimentPattern("mytvshows:*")
+-                .withExperimentsClient(experimentClient);
+-    }
+-
+-    @Configuration
+-    @Profile("izanamiProd")
+-    static class Prod {
+-
+-        @Bean
+-        @Autowired
+-        FeatureClient featureClient(IzanamiClient izanamiClient, Environment environment) {
+-            return izanamiClient.featureClient(
+-                    Strategies.smartCacheWithSseStrategy("mytvshows:*"),
+-                    Features.parseJson(environment.getProperty("izanami.fallback.features"))
+-            );
+-        }
+-
+-        @Bean
+-        @Autowired
+-        ConfigClient configClient(IzanamiClient izanamiClient, Environment environment) {
+-            return izanamiClient.configClient(
+-                    Strategies.smartCacheWithSseStrategy("mytvshows:*"),
+-                    Configs.parseJson(environment.getProperty("izanami.fallback.configs"))
+-            );
+-        }
+-
+-        @Bean
+-        @Autowired
+-        ExperimentsClient experimentClient(IzanamiClient izanamiClient, Environment environment) {
+-
+-            return izanamiClient.experimentClient(
+-                    Strategies.fetchStrategy(),
+-                    Experiments.parseJson(environment.getProperty("izanami.fallback.experiments"))
+-            );
+-        }
+-
+-
+-    }
+-
+-    @Configuration
+-    @Profile("izanamiLocal")
+-    static class Dev {
+-
+-        @Bean
+-        @Autowired
+-        FeatureClient featureClientDev(IzanamiClient izanamiClient, Environment environment) {
+-            String json = environment.getProperty("izanami.fallback.features");
+-            LOGGER.info("Loading feature fallback \n{}", json);
+-            return izanamiClient.featureClient(
+-                    Strategies.dev(),
+-                    Features.parseJson(json)
+-            );
+-        }
+-
+-        @Bean
+-        @Autowired
+-        ConfigClient configClientDev(IzanamiClient izanamiClient, Environment environment) {
+-            String json = environment.getProperty("izanami.fallback.configs");
+-            LOGGER.info("Loading configs fallback \n{}", json);
+-            return izanamiClient.configClient(
+-                    Strategies.dev(),
+-                    Configs.parseJson(json)
+-            );
+-        }
+-
+-        @Bean
+-        @Autowired
+-        ExperimentsClient experimentClient(IzanamiClient izanamiClient, Environment environment) {
+-            String json = environment.getProperty("izanami.fallback.experiments");
+-            LOGGER.info("Loading configs fallback \n{}", json);
+-            return izanamiClient.experimentClient(
+-                    Strategies.dev(),
+-                    Experiments.parseJson(json)
+-            );
+-        }
+-
+-    }
+-
+-    @Configuration
+-    @Profile("otoroshi")
+-    static class Otoroshi {
+-
+-        @Bean
+-        Filter otoroshiFilter(Environment environment) {
+-            String sharedKey = environment.getProperty("otoroshi.sharedKey");
+-            String issuer = environment.getProperty("otoroshi.issuer");
+-            String claimHeaderName = environment.getProperty("otoroshi.claimHeaderName");
+-            String requestIdHeaderName = environment.getProperty("otoroshi.requestIdHeaderName");
+-            String stateHeaderName = environment.getProperty("otoroshi.stateHeaderName");
+-            String stateRespHeaderName = environment.getProperty("otoroshi.stateRespHeaderName");
+-            return new OtoroshiFilter("prod", sharedKey, issuer, requestIdHeaderName, claimHeaderName, stateHeaderName, stateRespHeaderName);
+-        }
+-    }
+ }
+diff --git a/example/example-spring/src/main/java/izanami/example/izanami/IzanamiProxyController.java b/example/example-spring/src/main/java/izanami/example/izanami/IzanamiProxyController.java
+index 9c40e5e..6b8bd9d 100644
+--- a/example/example-spring/src/main/java/izanami/example/izanami/IzanamiProxyController.java
++++ b/example/example-spring/src/main/java/izanami/example/izanami/IzanamiProxyController.java
+@@ -18,49 +18,5 @@ import static org.reactivecouchbase.json.Syntax.$;
+ @RequestMapping("/api/izanami")
+ public class IzanamiProxyController {
+ 
+-    private final Proxy proxy;
+-
+-    @Autowired
+-    public IzanamiProxyController(Proxy proxy) {
+-        this.proxy = proxy;
+-    }
+-
+-
+-    @GetMapping()
+-    public CompletionStage<ResponseEntity<String>> proxy(
+-            @CookieValue(value = "userId", required = false) String userId) {
+-
+-        Option<JsObject> context = Option.of(userId).map(id -> Json.obj($("userId", id)));
+-
+-        return proxy.statusAndStringResponse(context, Option.of(userId))
+-                .map(resp ->
+-                        new ResponseEntity<>(resp._2, HttpStatus.valueOf(resp._1))
+-                ).toCompletableFuture();
+-    }
+-
+-    @PostMapping("/experiments/displayed")
+-    public CompletionStage<ResponseEntity<String>> markDisplayed(
+-            @RequestParam(value = "experiment") String id,
+-            @CookieValue(value = "userId") String userId) {
+-
+-        return proxy.markVariantDisplayedStringResponse(id, userId)
+-                .map(resp ->
+-                        new ResponseEntity<>(resp._2, HttpStatus.valueOf(resp._1))
+-                ).toCompletableFuture();
+-
+-
+-    }
+-
+-    @PostMapping("/experiments/won")
+-    public CompletionStage<ResponseEntity<String>> markWon(
+-            @RequestParam(value = "experiment") String id,
+-            @CookieValue(value = "userId", required = false) String userId) {
+-
+-        return proxy.markVariantWonStringResponse(id, userId)
+-                .map(resp ->
+-                        new ResponseEntity<>(resp._2, HttpStatus.valueOf(resp._1))
+-                ).toCompletableFuture();
+-
+-    }
+ 
+ }
+diff --git a/example/example-spring/src/main/java/izanami/example/me/MeController.java b/example/example-spring/src/main/java/izanami/example/me/MeController.java
+index 9d8a7a8..f122cde 100644
+--- a/example/example-spring/src/main/java/izanami/example/me/MeController.java
++++ b/example/example-spring/src/main/java/izanami/example/me/MeController.java
+@@ -13,12 +13,10 @@ import java.util.function.Supplier;
+ public class MeController {
+ 
+     private final MeService meService;
+-    private final FeatureClient featureClient;
+ 
+     @Autowired
+-    public MeController(MeService meService, FeatureClient featureClient) {
++    public MeController(MeService meService) {
+         this.meService = meService;
+-        this.featureClient = featureClient;
+     }
+ 
+     @GetMapping(path = "")
+@@ -62,12 +60,7 @@ public class MeController {
+             @PathVariable("seasonNumber") Long seasonNumber,
+             @RequestParam("watched") Boolean watched
+     ) {
+-        return checkSecurityResponse(userId, () ->
+-                featureClient.featureOrElse("mytvshows:season:markaswatched",
+-                        () -> ResponseEntity.ok(meService.markSeason(userId, serieId, seasonNumber, watched)),
+-                        () -> ResponseEntity.badRequest().<Me>body(null)
+-                ).get()
+-        );
++        return ResponseEntity.ok(meService.markSeason(userId, serieId, seasonNumber, watched));
+     }
+ 
+     private <T> ResponseEntity<T> checkSecurity(String userId, Supplier<T> func) {
+diff --git a/example/example-spring/src/main/java/izanami/example/shows/ShowsApi.java b/example/example-spring/src/main/java/izanami/example/shows/ShowsApi.java
+index 908553e..bac9ecc 100644
+--- a/example/example-spring/src/main/java/izanami/example/shows/ShowsApi.java
++++ b/example/example-spring/src/main/java/izanami/example/shows/ShowsApi.java
+@@ -1,63 +1,41 @@
+ package izanami.example.shows;
+ 
+-import akka.Done;
+ import io.vavr.collection.List;
+ import io.vavr.control.Option;
+-import izanami.FeatureEvent;
+ import izanami.example.shows.providers.betaserie.BetaSerieApi;
+ import izanami.example.shows.providers.tvdb.TvdbShowsApi;
+-import izanami.javadsl.FeatureClient;
+-import izanami.javadsl.Features;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.context.annotation.Primary;
++import org.springframework.core.env.Environment;
+ import org.springframework.stereotype.Component;
+ 
+-import static io.vavr.API.*;
+-import static io.vavr.Predicates.*;
+-
+ @Primary
+ @Component
+ public class ShowsApi implements Shows {
+ 
+     private final static Logger LOGGER = LoggerFactory.getLogger(ShowsApi.class);
+ 
+-    private final FeatureClient featureClient;
+-
+     private final TvdbShowsApi tvdbShowsApi;
+ 
+     private final BetaSerieApi betaSerieApi;
+-
+-@Autowired
+-public ShowsApi(FeatureClient featureClient, TvdbShowsApi tvdbShowsApi, BetaSerieApi betaSerieApi) {
+-    this.featureClient = featureClient;
+-    this.tvdbShowsApi = tvdbShowsApi;
+-    this.betaSerieApi = betaSerieApi;
+-    featureClient.onEvent("mytvshows:providers:*", event -> {
+-        Match(event).of(
+-                Case($(instanceOf(FeatureEvent.FeatureCreated.class)), c -> {
+-                    LOGGER.info("{} is created with enable = {}", c.feature().id(), c.feature().enabled());
+-                    return Done.getInstance();
+-                }),
+-                Case($(instanceOf(FeatureEvent.FeatureUpdated.class)), c -> {
+-                    LOGGER.info("{} is updated with enable = {}", c.feature().id(), c.feature().enabled());
+-                    return Done.getInstance();
+-                }),
+-                Case($(instanceOf(FeatureEvent.FeatureDeleted.class)), c -> {
+-                    LOGGER.info("{} is deleted", c.id());
+-                    return Done.getInstance();
+-                })
+-        );
+-    });
+-}
++    private final Boolean tvdb;
++    private final Boolean betaserie;
++
++    @Autowired
++    public ShowsApi(TvdbShowsApi tvdbShowsApi, BetaSerieApi betaSerieApi, Environment environment) {
++        this.tvdbShowsApi = tvdbShowsApi;
++        this.betaSerieApi = betaSerieApi;
++        this.tvdb = environment.getProperty("mytvshow.tvdb", Boolean.class);
++        this.betaserie = environment.getProperty("mytvshow.betaserie", Boolean.class);
++    }
+ 
+     @Override
+     public List<ShowResume> search(String serie) {
+-        Features features = this.featureClient.features("mytvshows:providers:*").get();
+-        if (features.isActive("mytvshows:providers:tvdb")) {
++        if (this.tvdb) {
+             return tvdbShowsApi.search(serie);
+-        } else if (features.isActive("mytvshows:providers:betaserie")) {
++        } else if (this.betaserie) {
+             return betaSerieApi.search(serie);
+         } else {
+             return List.empty();
+@@ -66,10 +44,9 @@ public ShowsApi(FeatureClient featureClient, TvdbShowsApi tvdbShowsApi, BetaSeri
+ 
+     @Override
+     public Option<Show> get(String id) {
+-        Features features = this.featureClient.features("mytvshows:providers:*").get();
+-        if (features.isActive("mytvshows:providers:tvdb")) {
++        if (this.tvdb) {
+             return tvdbShowsApi.get(id);
+-        } else if (features.isActive("mytvshows:providers:betaserie")) {
++        } else if (this.betaserie) {
+             return betaSerieApi.get(id);
+         } else {
+             return Option.none();
+diff --git a/example/example-spring/src/main/java/izanami/example/shows/ShowsController.java b/example/example-spring/src/main/java/izanami/example/shows/ShowsController.java
+index 71ad709..f3c63a7 100644
+--- a/example/example-spring/src/main/java/izanami/example/shows/ShowsController.java
++++ b/example/example-spring/src/main/java/izanami/example/shows/ShowsController.java
+@@ -3,10 +3,7 @@ package izanami.example.shows;
+ 
+ import io.vavr.collection.List;
+ import org.springframework.beans.factory.annotation.Autowired;
+-import org.springframework.web.bind.annotation.GetMapping;
+-import org.springframework.web.bind.annotation.RequestMapping;
+-import org.springframework.web.bind.annotation.RequestParam;
+-import org.springframework.web.bind.annotation.RestController;
++import org.springframework.web.bind.annotation.*;
+ 
+ 
+ @RestController
+@@ -21,7 +18,7 @@ public class ShowsController {
+     }
+ 
+     @GetMapping("/_search")
+-    public List<Shows.ShowResume> searchTvShow(@RequestParam("name")  String name) {
++    public List<Shows.ShowResume> searchTvShow(@CookieValue("userId") String userId, @RequestParam("name")  String name) {
+         return shows.search(name);
+     }
+ 
+diff --git a/example/example-spring/src/main/resources/application.yml b/example/example-spring/src/main/resources/application.yml
+index a8c9762..ff6a2c3 100644
+--- a/example/example-spring/src/main/resources/application.yml
++++ b/example/example-spring/src/main/resources/application.yml
+@@ -3,10 +3,14 @@ spring:
+     active:
+       - izanamiProd
+       - dev
++      - otoroshi
+ frontend:
+   type: "REACT"
+ leveldb:
+   path: "leveldb/datas"
++mytvshow:
++  betaserie: true
++  tvdb: true
+ betaserie:
+   apikey: "a8dd8ebe25e9"
+   url: "https://api.betaseries.com"
+@@ -22,7 +26,7 @@ otoroshi:
+   stateHeaderName: "Otoroshi-State"
+   stateRespHeaderName: "Otoroshi-State-Resp"
+ izanami:
+-  host: "http://izanami-tryout.cleverapps.io"
++  host: "http://localhost:9000"
+   clientId: "xxxx"
+   clientSecret: "xxxx"
+   fallback:
