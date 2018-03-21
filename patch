@@ -19,10 +19,10 @@ index 25073e7..c7e101a 100644
                        <p className="description">{_.truncate(description, {length:350})}</p>
                      </div>
 diff --git a/example/example-spring/javascript-react/src/pages/TvShow.js b/example/example-spring/javascript-react/src/pages/TvShow.js
-index 5dbd9b3..c571d76 100644
+index 5dbd9b3..6395384 100644
 --- a/example/example-spring/javascript-react/src/pages/TvShow.js
 +++ b/example/example-spring/javascript-react/src/pages/TvShow.js
-@@ -96,27 +96,20 @@ export default class TvShow extends React.Component {
+@@ -96,27 +96,6 @@ export default class TvShow extends React.Component {
                          >
                              {`Season ${s.number}`}
                          </a>
@@ -47,20 +47,6 @@ index 5dbd9b3..c571d76 100644
 -                            <div></div>
 -                          </Disabled>
 -                        </Feature>
-+                        {s.allWatched &&
-+                          <button
-+                            onClick={this.markSeasonWatched(s.number, false)}
-+                            className="btn btn default pull-right addBtn">
-+                              <i className="glyphicon glyphicon-ok"/>
-+                          </button>
-+                        }
-+                        {!s.allWatched &&
-+                          <button
-+                            onClick={this.markSeasonWatched(s.number, true)}
-+                            className="btn btn default pull-right addBtn">
-+                            ADD
-+                          </button>
-+                        }
                      </h4>
                    </div>
                    <div id={`collapse-${s.number}`} className={idx === expandId ? "panel-collapse collapse in": "panel-collapse collapse"} role="tabpanel" aria-labelledby={`heading-${s.number}`}>
