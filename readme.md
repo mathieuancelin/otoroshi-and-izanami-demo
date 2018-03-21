@@ -15,7 +15,7 @@ Tools requirements
 
 ## Setup
 
-```
+```sh
 git clone https://github.com/mathieuancelin/otoroshi-and-izanami-demo.git
 cd otoroshi-and-izanami-demo
 sh demo.sh setup_otoroshi

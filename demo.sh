@@ -84,9 +84,13 @@ setup_izanami () {
   fi
   # TODO : setup whatever else needed here 
   cp $LOCATION/patch $LOCATION/izanami/patch
-  cd izanami
+  cd $LOCATION/izanami
   git apply ./patch
   rm -rf ./patch
+  cd $LOCATION/izanami/example/example-spring/javascript-react
+  yarn install
+  cd $LOCATION/izanami/example/example-spring/javascript-angular
+  yarn install
   cd $LOCATION
 }
 
