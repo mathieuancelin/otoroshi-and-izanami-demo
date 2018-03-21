@@ -2,6 +2,17 @@
 
 demo some basic features of Otoroshi and Izanami (https://maif.github.io/)
 
+Tools requirements 
+
+* JDK8
+* docker
+* git
+* curl
+* wget
+* jqn
+* node
+* yarn
+
 ## Setup
 
 ```
