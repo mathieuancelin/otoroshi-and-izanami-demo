@@ -89,6 +89,7 @@ setup_izanami () {
   rm -rf ./patch
   cd $LOCATION/izanami/example/example-spring/javascript-react
   yarn install
+  yarn build
   cd $LOCATION/izanami/example/example-spring/javascript-angular
   yarn install
   cd $LOCATION
