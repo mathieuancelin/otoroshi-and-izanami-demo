@@ -59,10 +59,10 @@ setup_otoroshi () {
     git clone https://github.com/MAIF/otoroshi.git --depth=1
   fi
   if [ ! -f "$LOCATION/otoroshi.jar" ]; then
-    wget -q --show-progress 'https://dl.bintray.com/maif/binaries/otoroshi.jar/snapshot/otoroshi.jar'
+    wget -q --show-progress 'https://dl.bintray.com/maif/binaries/otoroshi.jar/1.1.1/otoroshi.jar'
   fi
   if [ ! -f "$LOCATION/otoroshicli" ]; then
-    wget -q --show-progress 'https://dl.bintray.com/maif/binaries/mac-otoroshicli/1.1.0/otoroshicli'
+    wget -q --show-progress 'https://dl.bintray.com/maif/binaries/mac-otoroshicli/1.1.1/otoroshicli'
   fi
   chmod +x $LOCATION/otoroshicli  
   cd otoroshi/clients/demo
