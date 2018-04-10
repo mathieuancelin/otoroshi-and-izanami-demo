@@ -1,0 +1,117 @@
+diff --git a/example/example-spring/javascript-react/src/pages/MyTvshows.js b/example/example-spring/javascript-react/src/pages/MyTvshows.js
+index 25073e7..c7e101a 100644
+--- a/example/example-spring/javascript-react/src/pages/MyTvshows.js
++++ b/example/example-spring/javascript-react/src/pages/MyTvshows.js
+@@ -32,14 +32,7 @@ export default class MyTvShows extends React.Component {
+                     </div>
+                     <div className="media-body">
+                       <h3 className="media-heading">{title}</h3>
+-                      <Experiment path={"mytvshows:gotoepisodes:button"} notifyDisplay="/api/izanami/experiments/displayed" >
+-                        <Variant id={"A"}>
+-                          <Link to={`/tvshow/${id}`} onClick={this.markAsWon} className="btn pull-right" alt="consulter"><i className="fa fa-eye"></i></Link>
+-                        </Variant>
+-                        <Variant id={"B"}>
+-                          <Link to={`/tvshow/${id}`} onClick={this.markAsWon} className="btn pull-right" alt="consulter"><i className="glyphicon glyphicon-chevron-right"></i></Link>
+-                        </Variant>
+-                      </Experiment>
++                      <Link to={`/tvshow/${id}`} className="btn pull-right" alt="consulter"><i className="fa fa-eye"></i></Link>
+                       <button type="button" className="btn pull-right" onClick={this.remove(id)} alt="supprimer"><i className="glyphicon glyphicon-trash"/></button>
+                       <p className="description">{_.truncate(description, {length:350})}</p>
+                     </div>
+diff --git a/example/example-spring/javascript-react/src/services.js b/example/example-spring/javascript-react/src/services.js
+index 984317a..da89d21 100644
+--- a/example/example-spring/javascript-react/src/services.js
++++ b/example/example-spring/javascript-react/src/services.js
+@@ -30,9 +30,16 @@ export function me() {
+ 
+ 
+ export function searchTvShow(input) {
+-  return fetch(`/api/shows/_search?name=${input}&ts=${new Date().getTime()}`)
++  return fetch(`/api/shows/_search?name=${input}&ts=${new Date().getTime()}`, {
++        method: 'GET',
++        credentials: 'include'
++    })
+     .then((response) => {
+-      return response.json();
++      if (response.status === 200){
++          return response.json();
++      } else {
++        return [];
++      }
+     });
+ }
+ 
+diff --git a/example/example-spring/src/main/java/izanami/example/Application.java b/example/example-spring/src/main/java/izanami/example/Application.java
+index 1cc89f3..6c63258 100644
+--- a/example/example-spring/src/main/java/izanami/example/Application.java
++++ b/example/example-spring/src/main/java/izanami/example/Application.java
+@@ -161,7 +161,7 @@ public class Application {
+     @Profile("otoroshi")
+     static class Otoroshi {
+ 
+-        @Bean
++        //@Bean
+         Filter otoroshiFilter(Environment environment) {
+             String sharedKey = environment.getProperty("otoroshi.sharedKey");
+             String issuer = environment.getProperty("otoroshi.issuer");
+diff --git a/example/example-spring/src/main/java/izanami/example/shows/ShowsController.java b/example/example-spring/src/main/java/izanami/example/shows/ShowsController.java
+index 71ad709..f3c63a7 100644
+--- a/example/example-spring/src/main/java/izanami/example/shows/ShowsController.java
++++ b/example/example-spring/src/main/java/izanami/example/shows/ShowsController.java
+@@ -3,10 +3,7 @@ package izanami.example.shows;
+ 
+ import io.vavr.collection.List;
+ import org.springframework.beans.factory.annotation.Autowired;
+-import org.springframework.web.bind.annotation.GetMapping;
+-import org.springframework.web.bind.annotation.RequestMapping;
+-import org.springframework.web.bind.annotation.RequestParam;
+-import org.springframework.web.bind.annotation.RestController;
++import org.springframework.web.bind.annotation.*;
+ 
+ 
+ @RestController
+@@ -21,7 +18,7 @@ public class ShowsController {
+     }
+ 
+     @GetMapping("/_search")
+-    public List<Shows.ShowResume> searchTvShow(@RequestParam("name")  String name) {
++    public List<Shows.ShowResume> searchTvShow(@CookieValue("userId") String userId, @RequestParam("name")  String name) {
+         return shows.search(name);
+     }
+ 
+diff --git a/example/example-spring/src/main/resources/application.yml b/example/example-spring/src/main/resources/application.yml
+index a8c9762..31b6952 100644
+--- a/example/example-spring/src/main/resources/application.yml
++++ b/example/example-spring/src/main/resources/application.yml
+@@ -3,10 +3,14 @@ spring:
+     active:
+       - izanamiProd
+       - dev
++      - otoroshi
+ frontend:
+   type: "REACT"
+ leveldb:
+   path: "leveldb/datas"
++mytvshow:
++  betaserie: true
++  tvdb: true
+ betaserie:
+   apikey: "a8dd8ebe25e9"
+   url: "https://api.betaseries.com"
+@@ -15,14 +19,14 @@ tvdb:
+   url: "https://api.thetvdb.com"
+   banner: "https://www.thetvdb.com/banners/"
+ otoroshi:
+-  sharedKey: "otoroshisharedkey"
++  sharedKey: "secret"
+   issuer: "Otoroshi"
+   claimHeaderName: "Otoroshi-Claim"
+   requestIdHeaderName: "Otoroshi-Request-Id"
+   stateHeaderName: "Otoroshi-State"
+   stateRespHeaderName: "Otoroshi-State-Resp"
+ izanami:
+-  host: "http://izanami-tryout.cleverapps.io"
++  host: "http://localhost:9000"
+   clientId: "xxxx"
+   clientSecret: "xxxx"
+   fallback:
